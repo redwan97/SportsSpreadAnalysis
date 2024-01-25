@@ -53,23 +53,27 @@ public class BasketballSpreadCalculator {
     
 
     private void reportPerformanceAnalysis() {
-        // Calculate max and min values for differential and total points
+        // Set max/min flags for differential and total for each game in both teams
         setMaxMinFlags(teamAGames);
         setMaxMinFlags(teamBGames);
-
-        // Reporting for Team A and Team B
-        System.out.println("\t\tOdds | Wins | Losses | Avg Diff | Max Diffs | Min Diffs");
+    
+        // Print headers for team statistics
+        System.out.println("              Odds | Wins | Losses | Avg Diff | Max Diffs | Min Diffs");
         printTeamStats("TEAM A", teamAGames, teamAodds);
         printTeamStats("TEAM B", teamBGames, teamBodds);
-
-        System.out.println("\nGames");
-        System.out.println("Result | Score       | Diff | isMaxDiff | isMinDiff | isMaxTotal | isMinTotal");
-        teamAGames.forEach(this::printGameDetails);
-
-        System.out.println("\nGames");
-        System.out.println("Result | Score       | Diff | isMaxDiff | isMinDiff | isMaxTotal | isMinTotal");
-        teamBGames.forEach(this::printGameDetails);
+    
+        
+        // Print details for each game of Team A
+        System.out.println("TEAM A Games:");
+        System.out.println("Result | Score       | Diff | Total  | isMaxDiff    | isMinDiff    | isMaxTotal   | isMinTotal  |");
+        teamAGames.forEach(game -> printGameDetails(game, teamAGames));
+    
+        // Print details for each game of Team B
+        System.out.println("\nTEAM B Games:");
+        System.out.println("Result | Score       | Diff | Total  | isMaxDiff    | isMinDiff    | isMaxTotal   | isMinTotal  |");
+        teamBGames.forEach(game -> printGameDetails(game, teamBGames));
     }
+    
 
     private void setMaxMinFlags(List<GameInfo> games) {
         int maxDiff = games.stream().mapToInt(g -> g.differential).max().orElse(0);
@@ -94,16 +98,17 @@ public class BasketballSpreadCalculator {
         String maxDiffs = getFormattedMaxMinStats(games, true);  // For Max Diffs
         String minDiffs = getFormattedMaxMinStats(games, false); // For Min Diffs
     
-        System.out.println(String.format("%s | %7d | %6d | %6d | %8.2f | %9s | %9s",
+        System.out.println(String.format("%s | %8d | %5d | %6d | %8.2f | %10s | %10s",
                 teamName,
                 odds,
                 wins,
                 losses,
-                avgDiff,  
+                avgDiff,
                 maxDiffs,
                 minDiffs
         ));
     }
+    
     
     
     private String getFormattedMaxMinStats(List<GameInfo> games, boolean isMax) {
@@ -123,18 +128,47 @@ public class BasketballSpreadCalculator {
     }
     
 
-    private void printGameDetails(GameInfo game) {
-        System.out.println(String.format("%-6s | %5d-%-5d | %4d | %9s | %9s | %10s | %10s",
+    private void printGameDetails(GameInfo game, List<GameInfo> games) {
+        String maxDiffLabel = getOrdinalLabel(games, game.differential, true, true);
+        String minDiffLabel = getOrdinalLabel(games, game.differential, false, true);
+        String maxTotalLabel = getOrdinalLabel(games, game.totalPoints, true, false);
+        String minTotalLabel = getOrdinalLabel(games, game.totalPoints, false, false);
+    
+        System.out.println(String.format("%-6s | %5d-%-5d | %4d | %6d | %12s | %12s | %12s | %12s",
                 game.result,
                 game.teamScore,
                 game.opponentScore,
                 game.differential,
-                game.isMaxDiff ? "Y (" + game.differential + ")" : "N",
-                game.isMinDiff ? "Y (" + game.differential + ")" : "N",
-                game.isMaxTotal ? "Y (" + game.totalPoints + ")" : "N",
-                game.isMinTotal ? "Y (" + game.totalPoints + ")" : "N"
+                game.totalPoints,
+                maxDiffLabel,
+                minDiffLabel,
+                maxTotalLabel,
+                minTotalLabel
         ));
     }
+    
+    
+
+    private String getOrdinalLabel(List<GameInfo> games, int value, boolean isMax, boolean isDifferential) {
+        List<Integer> values = games.stream()
+                                    .mapToInt(g -> isDifferential ? g.differential : g.totalPoints)
+                                    .boxed()
+                                    .sorted(isMax ? Comparator.reverseOrder() : Comparator.naturalOrder())
+                                    .collect(Collectors.toList());
+    
+        int rank = values.indexOf(value) + 1;
+        if (rank > 0) {
+            switch (rank) {
+                case 1: return "1st (" + value + ")";
+                case 2: return "2nd (" + value + ")";
+                case 3: return "3rd (" + value + ")";
+                default: return ""; // or some default label
+            }
+        }
+        return ""; // Value not found or no ranking
+    }
+    
+    
 
     private List<GameInfo> processGameData(String data) {
         List<GameInfo> games = new ArrayList<>();
